@@ -1,0 +1,131 @@
+/* Import Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
+@import "tailwindcss"; /* Ajuste global de fontes */
+html {
+  font-size: 15px; /* um pouco menor */
+}
+
+h1 {
+  font-size: 2.5rem;
+} /* menor e ainda imponente */
+h2 {
+  font-size: 2rem;
+}
+h3 {
+  font-size: 1.75rem;
+}
+h4 {
+  font-size: 1.25rem;
+}
+h5 {
+  font-size: 1rem;
+}
+h6 {
+  font-size: 0.9rem;
+}
+
+/* Botões */
+.btn {
+  padding: 0.75rem 1.5rem; /* menos espaço */
+  font-size: 0.95rem; /* reduzindo um pouco */
+}
+
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1.05rem;
+}
+
+.btn-xl {
+  padding: 1.25rem 2.5rem;
+  font-size: 1.15rem;
+}
+
+/* Inputs */
+input,
+textarea,
+select {
+  padding: 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* Cards */
+.card {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.card:hover {
+  transform: translateY(-4px); /* menos impacto */
+  box-shadow: var(--shadow-lg);
+}
+
+/* Ícones (caso use FontAwesome ou similar) */
+.icon {
+  font-size: 1.2rem; /* padrão */
+}
+
+.icon-lg {
+  font-size: 1.5rem;
+}
+
+.icon-xl {
+  font-size: 2rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.75rem;
+  }
+  h3 {
+    font-size: 1.5rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+  }
+  .btn-lg {
+    padding: 0.85rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  .btn-xl {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+
+  input,
+  textarea,
+  select {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Pequenos ajustes de gap para grids */
+.gap-1 {
+  gap: 0.2rem;
+}
+.gap-2 {
+  gap: 0.4rem;
+}
+.gap-3 {
+  gap: 0.6rem;
+}
+.gap-4 {
+  gap: 0.8rem;
+}
+.gap-6 {
+  gap: 1.2rem;
+}
+.gap-8 {
+  gap: 1.6rem;
+}
