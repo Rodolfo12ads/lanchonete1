@@ -39,7 +39,6 @@ export const CartProvider = ({ children }) => {
       const existingItem = currentItems.find((item) => item.id === product.id);
 
       if (existingItem) {
-        // Se já existe, aumenta a quantidade
         const updatedItems = currentItems.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
@@ -48,7 +47,6 @@ export const CartProvider = ({ children }) => {
         toast.success(`${product.name} adicionado ao carrinho!`);
         return updatedItems;
       } else {
-        // Se não existe, adiciona novo item
         const newItem = {
           id: product.id,
           name: product.name,
@@ -65,13 +63,14 @@ export const CartProvider = ({ children }) => {
   // Remover item do carrinho
   const removeItem = (productId) => {
     setItems((currentItems) => {
+      const item = currentItems.find((i) => i.id === productId);
       const updatedItems = currentItems.filter((item) => item.id !== productId);
-      toast.success("Item removido do carrinho!");
+      if (item) toast.success(`${item.name} removido do carrinho!`);
       return updatedItems;
     });
   };
 
-  // Atualizar quantidade de um item
+  // Atualizar quantidade de um item (valor direto)
   const updateQuantity = (productId, newQuantity) => {
     if (newQuantity <= 0) {
       removeItem(productId);
@@ -82,6 +81,29 @@ export const CartProvider = ({ children }) => {
       currentItems.map((item) =>
         item.id === productId ? { ...item, quantity: newQuantity } : item
       )
+    );
+  };
+
+  // Aumentar quantidade de um item
+  const increaseQuantity = (productId) => {
+    setItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === productId ? { ...item, quantity: item.quantity + 1 } : item
+      )
+    );
+  };
+
+  // Diminuir quantidade de um item
+  const decreaseQuantity = (productId) => {
+    setItems(
+      (currentItems) =>
+        currentItems
+          .map((item) =>
+            item.id === productId
+              ? { ...item, quantity: item.quantity - 1 }
+              : item
+          )
+          .filter((item) => item.quantity > 0) // remove se zerar
     );
   };
 
@@ -112,6 +134,8 @@ export const CartProvider = ({ children }) => {
     addItem,
     removeItem,
     updateQuantity,
+    increaseQuantity,
+    decreaseQuantity,
     clearCart,
     getTotalItems,
     getTotalPrice,

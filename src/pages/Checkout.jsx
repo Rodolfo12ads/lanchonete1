@@ -7,12 +7,21 @@ import {
   CreditCard,
   Smartphone,
   MapPin,
-  User,
-  Mail,
-  Phone,
   ArrowLeft,
   ShoppingBag,
   Clock,
+  Plus,
+  Minus,
+  Trash2,
+  Loader,
+  User,
+  Mail,
+  Phone,
+  Home,
+  Map,
+  Navigation,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -21,13 +30,22 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import toast from "react-hot-toast";
 
 export default function Checkout() {
-  const { items, getTotalPrice, clearCart } = useCart();
+  const {
+    items,
+    getTotalPrice,
+    increaseQuantity,
+    decreaseQuantity,
+    removeFromCart,
+    clearCart,
+  } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(1); // 1: Dados, 2: Pagamento, 3: Confirmação
+  const [step, setStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [loading, setLoading] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [customerData, setCustomerData] = useState({
     name: user?.displayName || "",
@@ -39,11 +57,11 @@ export default function Checkout() {
       complement: "",
       neighborhood: "",
       city: "",
+      state: "",
       zipCode: "",
     },
   });
 
-  // Redirecionar se carrinho vazio
   useEffect(() => {
     if (items.length === 0) {
       navigate("/cardapio");
@@ -51,7 +69,69 @@ export default function Checkout() {
     }
   }, [items, navigate]);
 
+  // Função para buscar endereço pelo CEP
+  const fetchAddressByCep = async (cep) => {
+    const cleanCep = cep.replace(/\D/g, "");
+
+    if (cleanCep.length !== 8) {
+      setFieldErrors({ ...fieldErrors, zipCode: "CEP deve conter 8 dígitos" });
+      return;
+    }
+
+    setCepLoading(true);
+    try {
+      const response = await fetch(
+        `https://viacep.com.br/ws/${cleanCep}/json/`
+      );
+      const data = await response.json();
+
+      if (data.erro) {
+        setFieldErrors({ ...fieldErrors, zipCode: "CEP não encontrado" });
+        toast.error("CEP não encontrado");
+        return;
+      }
+
+      // Atualiza os campos de endereço com os dados da API
+      setCustomerData((prev) => ({
+        ...prev,
+        address: {
+          ...prev.address,
+          street: data.logradouro || "",
+          neighborhood: data.bairro || "",
+          city: data.localidade || "",
+          state: data.uf || "",
+          complement: data.complemento || "",
+          zipCode: cleanCep,
+        },
+      }));
+
+      // Limpar erros de endereço
+      const newErrors = { ...fieldErrors };
+      delete newErrors.zipCode;
+      delete newErrors.street;
+      delete newErrors.neighborhood;
+      delete newErrors.city;
+      delete newErrors.state;
+      setFieldErrors(newErrors);
+
+      toast.success("Endereço preenchido automaticamente");
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+      setFieldErrors({ ...fieldErrors, zipCode: "Erro ao buscar CEP" });
+      toast.error("Erro ao buscar CEP. Tente novamente.");
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
   const handleInputChange = (field, value) => {
+    // Limpar erro do campo quando usuário começar a digitar
+    if (fieldErrors[field]) {
+      const newErrors = { ...fieldErrors };
+      delete newErrors[field];
+      setFieldErrors(newErrors);
+    }
+
     if (field.includes(".")) {
       const [parent, child] = field.split(".");
       setCustomerData((prev) => ({
@@ -69,23 +149,61 @@ export default function Checkout() {
     }
   };
 
+  // Função para lidar com a mudança do CEP
+  const handleCepChange = (value) => {
+    // Aplicar máscara de CEP
+    const formattedValue = value
+      .replace(/\D/g, "")
+      .replace(/(\d{5})(\d)/, "$1-$2")
+      .slice(0, 9);
+
+    handleInputChange("address.zipCode", formattedValue);
+
+    // Busca automaticamente quando o CEP tiver 8 dígitos
+    if (value.replace(/\D/g, "").length === 8) {
+      fetchAddressByCep(value);
+    }
+  };
+
+  // Função para formatar telefone
+  const handlePhoneChange = (value) => {
+    const formattedValue = value
+      .replace(/\D/g, "")
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2")
+      .slice(0, 15);
+
+    handleInputChange("phone", formattedValue);
+  };
+
   const validateStep1 = () => {
+    const errors = {};
     const { name, email, phone, address } = customerData;
-    return (
-      name &&
-      email &&
-      phone &&
-      address.street &&
-      address.number &&
-      address.neighborhood &&
-      address.city &&
-      address.zipCode
-    );
+
+    if (!name) errors.name = "Nome é obrigatório";
+    if (!email || !/\S+@\S+\.\S+/.test(email)) errors.email = "Email inválido";
+    if (!phone || phone.replace(/\D/g, "").length < 10)
+      errors.phone = "Telefone inválido";
+    if (!address.zipCode || address.zipCode.replace(/\D/g, "").length !== 8)
+      errors.zipCode = "CEP inválido";
+    if (!address.street) errors.street = "Rua é obrigatória";
+    if (!address.number) errors.number = "Número é obrigatório";
+    if (!address.neighborhood) errors.neighborhood = "Bairro é obrigatório";
+    if (!address.city) errors.city = "Cidade é obrigatória";
+    if (!address.state || address.state.length !== 2)
+      errors.state = "Estado é obrigatório";
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleNextStep = () => {
     if (step === 1 && !validateStep1()) {
-      toast.error("Preencha todos os campos obrigatórios");
+      toast.error("Verifique os campos destacados");
+      return;
+    }
+    if (step === 2) {
+      handleCreateOrder();
       return;
     }
     setStep(step + 1);
@@ -93,7 +211,6 @@ export default function Checkout() {
 
   const handleCreateOrder = async () => {
     setLoading(true);
-
     try {
       const orderData = {
         items: items.map((item) => ({
@@ -114,8 +231,6 @@ export default function Checkout() {
       };
 
       const docRef = await addDoc(collection(db, "orders"), orderData);
-
-      // Navegar para página de pagamento Pix
       navigate(`/pagamento/${docRef.id}`);
     } catch (error) {
       console.error("Erro ao criar pedido:", error);
@@ -125,79 +240,36 @@ export default function Checkout() {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("pt-BR", {
+  const formatPrice = (price) =>
+    new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(price);
-  };
+    }).format(price || 0);
 
-  if (items.length === 0) {
-    return null;
-  }
+  if (items.length === 0) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header do Checkout */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate("/cardapio")}
-            className="flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Voltar ao Cardápio
-          </button>
-
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Finalizar Pedido
-          </h1>
-
-          {/* Progress Steps */}
-          <div className="flex items-center gap-4 mb-6">
-            {[
-              { num: 1, label: "Dados de Entrega" },
-              { num: 2, label: "Pagamento" },
-              { num: 3, label: "Confirmação" },
-            ].map((stepItem) => (
-              <div key={stepItem.num} className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    step >= stepItem.num
-                      ? "bg-orange-500 text-white"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
-                >
-                  {stepItem.num}
-                </div>
-                <span
-                  className={`text-sm ${
-                    step >= stepItem.num
-                      ? "text-orange-600 font-semibold"
-                      : "text-gray-500"
-                  }`}
-                >
-                  {stepItem.label}
-                </span>
-                {stepItem.num < 3 && (
-                  <div
-                    className={`w-8 h-0.5 ${
-                      step > stepItem.num ? "bg-orange-500" : "bg-gray-200"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <span className={step === 1 ? "text-orange-600 font-medium" : ""}>
+            Entrega
+          </span>
+          <span>›</span>
+          <span className={step === 2 ? "text-orange-600 font-medium" : ""}>
+            Pagamento
+          </span>
+          <span>›</span>
+          <span>Confirmação</span>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Formulário Principal */}
+          {/* Coluna de formulário */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
-              {/* Step 1: Dados de Entrega */}
               {step === 1 && (
                 <motion.div
                   key="step1"
@@ -206,110 +278,212 @@ export default function Checkout() {
                   exit={{ opacity: 0, x: -20 }}
                   className="bg-white rounded-2xl shadow-lg p-6"
                 >
-                  <div className="flex items-center gap-3 mb-6">
-                    <MapPin className="w-6 h-6 text-orange-500" />
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Dados de Entrega
-                    </h2>
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <User className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Dados Pessoais
+                    </h3>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4 mb-6">
+                  <div className="grid md:grid-cols-2 gap-4 mb-8">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nome Completo *
+                        Nome completo
                       </label>
-                      <input
-                        type="text"
-                        value={customerData.name}
-                        onChange={(e) =>
-                          handleInputChange("name", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Seu nome completo"
-                      />
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Seu nome completo"
+                          value={customerData.name}
+                          onChange={(e) =>
+                            handleInputChange("name", e.target.value)
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.name
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.name && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" /> {fieldErrors.name}
+                        </p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        E-mail *
+                        E-mail
                       </label>
-                      <input
-                        type="email"
-                        value={customerData.email}
-                        onChange={(e) =>
-                          handleInputChange("email", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="seu@email.com"
-                      />
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={customerData.email}
+                          onChange={(e) =>
+                            handleInputChange("email", e.target.value)
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.email
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.email && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Telefone
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="tel"
+                          placeholder="(00) 00000-0000"
+                          value={customerData.phone}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.phone
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.phone && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.phone}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Endereço de Entrega
+                    </h3>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4 mb-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        CEP
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="00000-000"
+                          value={customerData.address.zipCode}
+                          onChange={(e) => handleCepChange(e.target.value)}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.zipCode
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                        {cepLoading && (
+                          <div className="absolute right-3 top-3">
+                            <Loader className="w-5 h-5 animate-spin text-orange-500" />
+                          </div>
+                        )}
+                      </div>
+                      {fieldErrors.zipCode && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.zipCode}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4 mb-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Rua
+                      </label>
+                      <div className="relative">
+                        <Navigation className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Nome da rua"
+                          value={customerData.address.street}
+                          onChange={(e) =>
+                            handleInputChange("address.street", e.target.value)
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.street
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.street && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.street}
+                        </p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Telefone *
+                        Número
                       </label>
-                      <input
-                        type="tel"
-                        value={customerData.phone}
-                        onChange={(e) =>
-                          handleInputChange("phone", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="(11) 99999-9999"
-                      />
+                      <div className="relative">
+                        <Home className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Nº"
+                          value={customerData.address.number}
+                          onChange={(e) =>
+                            handleInputChange("address.number", e.target.value)
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.number
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.number && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.number}
+                        </p>
+                      )}
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        CEP *
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.address.zipCode}
-                        onChange={(e) =>
-                          handleInputChange("address.zipCode", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="00000-000"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Rua *
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.address.street}
-                        onChange={(e) =>
-                          handleInputChange("address.street", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Nome da rua"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Número *
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.address.number}
-                        onChange={(e) =>
-                          handleInputChange("address.number", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="123"
-                      />
-                    </div>
-
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Complemento
                       </label>
                       <input
                         type="text"
+                        placeholder="Apartamento, bloco, etc."
                         value={customerData.address.complement}
                         onChange={(e) =>
                           handleInputChange(
@@ -317,55 +491,108 @@ export default function Checkout() {
                             e.target.value
                           )
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Apto, bloco, etc."
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Bairro *
+                        Bairro
                       </label>
-                      <input
-                        type="text"
-                        value={customerData.address.neighborhood}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "address.neighborhood",
-                            e.target.value
-                          )
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Nome do bairro"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Cidade *
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.address.city}
-                        onChange={(e) =>
-                          handleInputChange("address.city", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Nome da cidade"
-                      />
+                      <div className="relative">
+                        <Map className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Nome do bairro"
+                          value={customerData.address.neighborhood}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "address.neighborhood",
+                              e.target.value
+                            )
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.neighborhood
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.neighborhood && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.neighborhood}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleNextStep}
-                    className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-xl font-bold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    Continuar para Pagamento
-                  </button>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cidade
+                      </label>
+                      <div className="relative">
+                        <Map className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Nome da cidade"
+                          value={customerData.address.city}
+                          onChange={(e) =>
+                            handleInputChange("address.city", e.target.value)
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                            fieldErrors.city
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.city && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" /> {fieldErrors.city}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Estado
+                      </label>
+                      <div className="relative">
+                        <Map className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="UF"
+                          value={customerData.address.state}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "address.state",
+                              e.target.value.toUpperCase()
+                            )
+                          }
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 uppercase ${
+                            fieldErrors.state
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          maxLength={2}
+                          required
+                        />
+                      </div>
+                      {fieldErrors.state && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />{" "}
+                          {fieldErrors.state}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </motion.div>
               )}
 
-              {/* Step 2: Pagamento */}
               {step === 2 && (
                 <motion.div
                   key="step2"
@@ -374,61 +601,91 @@ export default function Checkout() {
                   exit={{ opacity: 0, x: -20 }}
                   className="bg-white rounded-2xl shadow-lg p-6"
                 >
-                  <div className="flex items-center gap-3 mb-6">
-                    <CreditCard className="w-6 h-6 text-orange-500" />
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Método de Pagamento
-                    </h2>
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <CreditCard className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Forma de Pagamento
+                    </h3>
                   </div>
 
-                  <div className="space-y-4 mb-6">
-                    <div
-                      onClick={() => setPaymentMethod("pix")}
-                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                  <div className="space-y-4">
+                    <label
+                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
                         paymentMethod === "pix"
                           ? "border-orange-500 bg-orange-50"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Smartphone className="w-6 h-6 text-orange-500" />
-                        <div>
-                          <h3 className="font-semibold text-gray-900">PIX</h3>
-                          <p className="text-sm text-gray-600">
-                            Pagamento instantâneo via QR Code
-                          </p>
-                        </div>
-                        <div className="ml-auto">
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 ${
-                              paymentMethod === "pix"
-                                ? "border-orange-500 bg-orange-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {paymentMethod === "pix" && (
-                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                            )}
-                          </div>
-                        </div>
+                      <div
+                        className={`p-2 rounded-full ${
+                          paymentMethod === "pix"
+                            ? "bg-orange-100"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        <Smartphone
+                          className={`w-5 h-5 ${
+                            paymentMethod === "pix"
+                              ? "text-orange-600"
+                              : "text-gray-400"
+                          }`}
+                        />
                       </div>
-                    </div>
-                  </div>
+                      <div className="flex-1">
+                        <span className="font-medium">PIX</span>
+                        <p className="text-sm text-gray-500">
+                          Pagamento instantâneo com até 10% de desconto
+                        </p>
+                      </div>
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="pix"
+                        checked={paymentMethod === "pix"}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="h-5 w-5 text-orange-600 focus:ring-orange-500"
+                      />
+                    </label>
 
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => setStep(1)}
-                      className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-300 transition-all duration-300"
+                    <label
+                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        paymentMethod === "card"
+                          ? "border-orange-500 bg-orange-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
                     >
-                      Voltar
-                    </button>
-                    <button
-                      onClick={handleCreateOrder}
-                      disabled={loading}
-                      className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-xl font-bold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50"
-                    >
-                      {loading ? "Processando..." : "Finalizar Pedido"}
-                    </button>
+                      <div
+                        className={`p-2 rounded-full ${
+                          paymentMethod === "card"
+                            ? "bg-orange-100"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        <CreditCard
+                          className={`w-5 h-5 ${
+                            paymentMethod === "card"
+                              ? "text-orange-600"
+                              : "text-gray-400"
+                          }`}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-medium">Cartão de Crédito</span>
+                        <p className="text-sm text-gray-500">
+                          Pague em até 12x no cartão
+                        </p>
+                      </div>
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="card"
+                        checked={paymentMethod === "card"}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="h-5 w-5 text-orange-600 focus:ring-orange-500"
+                      />
+                    </label>
                   </div>
                 </motion.div>
               )}
@@ -445,9 +702,12 @@ export default function Checkout() {
                 </h3>
               </div>
 
-              <div className="space-y-4 mb-6">
+              <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3">
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 border-b pb-3"
+                  >
                     <img
                       src={item.imageUrl}
                       alt={item.name}
@@ -460,6 +720,30 @@ export default function Checkout() {
                       <p className="text-gray-600 text-sm">
                         {item.quantity}x {formatPrice(item.price)}
                       </p>
+
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => decreaseQuantity(item.id)}
+                          className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"
+                        >
+                          <Minus className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <span className="font-semibold text-gray-900">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => increaseQuantity(item.id)}
+                          className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"
+                        >
+                          <Plus className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="ml-2 p-1 rounded-full bg-red-100 hover:bg-red-200"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
                     </div>
                     <span className="font-bold text-gray-900">
                       {formatPrice(item.price * item.quantity)}
@@ -468,6 +752,7 @@ export default function Checkout() {
                 ))}
               </div>
 
+              {/* Totais */}
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Subtotal:</span>
@@ -489,6 +774,36 @@ export default function Checkout() {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <button
+                  onClick={handleNextStep}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Processando...
+                    </>
+                  ) : step === 2 ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Confirmar Pedido
+                    </>
+                  ) : (
+                    "Continuar para Pagamento"
+                  )}
+                </button>
+
+                <button
+                  onClick={() => clearCart()}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Excluir Pedido
+                </button>
               </div>
 
               <div className="mt-6 p-4 bg-orange-50 rounded-xl">
