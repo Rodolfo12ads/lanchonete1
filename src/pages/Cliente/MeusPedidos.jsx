@@ -1,23 +1,33 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../../auth/AuthProvider';
-import { Link } from 'react-router-dom';
-import Header from '../../components/Header';
-import Footer from '../../components/Footer';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthProvider";
+import { Link } from "react-router-dom";
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   collection,
   query,
   where,
   onSnapshot,
   orderBy,
-} from 'firebase/firestore';
-import { db } from '../../firebase';
-import { FiClock, FiCheckCircle, FiTruck } from 'react-icons/fi';
+} from "firebase/firestore";
+import { db } from "../../firebase";
+import {
+  FiClock,
+  FiCheckCircle,
+  FiTruck,
+  FiDollarSign,
+  FiChevronDown,
+  FiChevronUp,
+  FiAlertCircle,
+  FiShoppingBag,
+} from "react-icons/fi";
 
 export default function MeusPedidos() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedOrder, setExpandedOrder] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -26,13 +36,37 @@ export default function MeusPedidos() {
     }
 
     const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      collection(db, "orders"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const ordersData = snap.docs.map((d) => {
+        const data = d.data();
+
+        // Garantir que os itens tenham a estrutura correta
+        const items =
+          data.items?.map((item) => ({
+            ...item,
+            // Usar price, preco, value ou valor como fallback
+            price: parseFloat(
+              item.price || item.preco || item.value || item.valor || 0
+            ),
+            // Usar qty, quantity, quantidade como fallback
+            qty: parseInt(item.qty || item.quantity || item.quantidade || 1),
+          })) || [];
+
+        return {
+          id: d.id,
+          ...data,
+          items,
+          // Garantir que o total seja um número
+          total: parseFloat(data.total || 0),
+        };
+      });
+
+      setOrders(ordersData);
       setLoading(false);
     });
 
@@ -40,154 +74,282 @@ export default function MeusPedidos() {
   }, [user]);
 
   const formatDate = (ts) => {
-    if (!ts) return '';
+    if (!ts) return "";
     const date = ts.toDate ? ts.toDate() : new Date(ts);
-    return new Intl.DateTimeFormat('pt-BR', {
-      dateStyle: 'short',
-      timeStyle: 'short',
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(date);
   };
 
-  const getStatusColor = (status) => {
+  const formatPrice = (price) => {
+    const numPrice = typeof price === "number" ? price : parseFloat(price || 0);
+    if (isNaN(numPrice)) return "R$ 0,00";
+
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(numPrice);
+  };
+
+  const getStatusInfo = (status) => {
     switch (status) {
-      case 'aguardando':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'em preparo':
-        return 'text-blue-600 bg-blue-100';
-      case 'pronto':
-        return 'text-green-600 bg-green-100';
-      case 'entregue':
-        return 'text-green-700 bg-green-200';
-      case 'cancelado':
-        return 'text-red-600 bg-red-100';
+      case "aguardando":
+        return {
+          text: "Aguardando pagamento",
+          color: "text-yellow-800 bg-yellow-100 border-yellow-200",
+          icon: <FiClock className="w-4 h-4" />,
+          progress: 25,
+        };
+      case "em preparo":
+        return {
+          text: "Em preparo",
+          color: "text-blue-800 bg-blue-100 border-blue-200",
+          icon: <FiShoppingBag className="w-4 h-4" />,
+          progress: 50,
+        };
+      case "pronto":
+        return {
+          text: "Pronto para entrega",
+          color: "text-purple-800 bg-purple-100 border-purple-200",
+          icon: <FiCheckCircle className="w-4 h-4" />,
+          progress: 75,
+        };
+      case "entregue":
+        return {
+          text: "Entregue",
+          color: "text-green-800 bg-green-100 border-green-200",
+          icon: <FiTruck className="w-4 h-4" />,
+          progress: 100,
+        };
+      case "cancelado":
+        return {
+          text: "Cancelado",
+          color: "text-red-800 bg-red-100 border-red-200",
+          icon: <FiAlertCircle className="w-4 h-4" />,
+          progress: 0,
+        };
       default:
-        return 'text-gray-600 bg-gray-100';
+        return {
+          text: "Status desconhecido",
+          color: "text-gray-800 bg-gray-100 border-gray-200",
+          icon: <FiAlertCircle className="w-4 h-4" />,
+          progress: 0,
+        };
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'aguardando':
-        return <FiClock className="w-4 h-4" />;
-      case 'em preparo':
-        return <FiTruck className="w-4 h-4" />;
-      case 'pronto':
-      case 'entregue':
-        return <FiCheckCircle className="w-4 h-4" />;
-      default:
-        return <FiClock className="w-4 h-4" />;
+  const toggleOrderDetails = (orderId) => {
+    if (expandedOrder === orderId) {
+      setExpandedOrder(null);
+    } else {
+      setExpandedOrder(orderId);
     }
+  };
+
+  // Função para debug - exibe a estrutura completa do pedido
+  const debugOrder = (order) => {
+    console.log("Estrutura completa do pedido:", order);
+    alert(
+      "Estrutura do pedido foi logada no console. Verifique se os preços estão corretos."
+    );
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Meus Pedidos
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600">
             Acompanhe o status dos seus pedidos em tempo real
           </p>
         </div>
 
         {!user ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-4xl">🔒</span>
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">🔒</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
               Faça login para ver seus pedidos
             </h3>
-            <p className="text-gray-600 mb-8 text-lg">
-              Entre com sua conta Google para acompanhar seus pedidos
+            <p className="text-gray-600 mb-6">
+              Entre com sua conta para acompanhar seus pedidos
             </p>
             <Link
               to="/login"
-              className="inline-flex items-center px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg"
+              className="inline-flex items-center px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
             >
               Fazer Login
             </Link>
           </div>
         ) : loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-16">
             <LoadingSpinner size="xl" />
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">📦</span>
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">📦</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
               Nenhum pedido ainda
             </h3>
-            <p className="text-gray-600 mb-8 text-lg">
+            <p className="text-gray-600 mb-6">
               Que tal fazer seu primeiro pedido?
             </p>
             <Link
               to="/cardapio"
-              className="inline-flex items-center px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg"
+              className="inline-flex items-center px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
             >
               Ver Cardápio
             </Link>
           </div>
         ) : (
           <div className="space-y-6">
-            {orders.map((o) => (
-              <div
-                key={o.id}
-                className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <div>
-                    <div className="font-bold text-xl text-gray-900">
-                      Pedido #{o.id.slice(-6)}
-                    </div>
-                    <div className="text-gray-500">
-                      {formatDate(o.createdAt)}
-                    </div>
-                  </div>
+            {orders.map((order) => {
+              const statusInfo = getStatusInfo(order.status);
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100"
+                >
                   <div
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium ${getStatusColor(
-                      o.status
-                    )}`}
+                    className="p-5 cursor-pointer"
+                    onClick={() => toggleOrderDetails(order.id)}
                   >
-                    {getStatusIcon(o.status)}
-                    <span className="capitalize">{o.status || 'aguardando'}</span>
-                  </div>
-                </div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-lg text-gray-900 mb-1">
+                          Pedido #{order.id.slice(-6).toUpperCase()}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatDate(order.createdAt)}
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <div
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}
+                        >
+                          {statusInfo.icon}
+                          <span>{statusInfo.text}</span>
+                        </div>
+                        <button className="ml-3 text-gray-400 hover:text-gray-600">
+                          {expandedOrder === order.id ? (
+                            <FiChevronUp className="w-5 h-5" />
+                          ) : (
+                            <FiChevronDown className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
 
-                <div className="border-t border-gray-100 pt-4">
-                  <h4 className="font-bold text-gray-900 mb-4">Itens do pedido:</h4>
-                  <div className="space-y-3">
-                    {o.items?.map((it, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                        <span className="text-gray-900 font-medium">
-                          {it.qty}x {it.name}
-                        </span>
-                        <span className="font-bold text-red-600">
-                          R$ {(it.price * it.qty).toFixed(2)}
+                    {/* Barra de progresso */}
+                    {order.status !== "cancelado" && (
+                      <div className="mt-4">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-red-600 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${statusInfo.progress}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>Realizado</span>
+                          <span>Preparando</span>
+                          <span>Pronto</span>
+                          <span>Entregue</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {expandedOrder === order.id && (
+                    <div className="border-t border-gray-100 p-5 bg-gray-50">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-bold text-gray-900 flex items-center">
+                          <FiShoppingBag className="mr-2" />
+                          Itens do pedido
+                        </h4>
+                        {/* <button
+                          onClick={() => debugOrder(order)}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Ver detalhes técnicos
+                        </button> */}
+                      </div>
+
+                      <div className="space-y-3 mb-4">
+                        {order.items?.map((item, index) => {
+                          // Calcular preço do item com fallbacks
+                          const itemPrice =
+                            item.price ||
+                            item.preco ||
+                            item.value ||
+                            item.valor ||
+                            0;
+                          const itemQty =
+                            item.qty || item.quantity || item.quantidade || 1;
+                          const itemTotal =
+                            parseFloat(itemPrice) * parseInt(itemQty);
+
+                          return (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100"
+                            >
+                              <div>
+                                <span className="font-medium text-gray-900">
+                                  {itemQty}x {item.name}
+                                </span>
+                                {item.observations && (
+                                  <p className="text-sm text-gray-500 mt-1">
+                                    Obs: {item.observations}
+                                  </p>
+                                )}
+                                {/* Exibir preço unitário para debug */}
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Unit: {formatPrice(itemPrice)}
+                                </p>
+                              </div>
+                              <span className="font-bold text-red-600">
+                                {formatPrice(itemTotal)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                        <div className="flex items-center text-gray-700">
+                          <FiDollarSign className="mr-2" />
+                          <span className="font-medium">Total do pedido:</span>
+                        </div>
+                        <span className="text-xl font-bold text-red-600">
+                          {formatPrice(order.total)}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between items-center">
-                  <span className="text-gray-700 font-medium text-lg">Total do pedido:</span>
-                  <span className="text-3xl font-bold text-red-600">
-                    R$ {Number(o.total || 0).toFixed(2)}
-                  </span>
+                      {order.paymentMethod && (
+                        <div className="mt-3 text-sm text-gray-600">
+                          Forma de pagamento: {order.paymentMethod}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
-      
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
       <Footer />
     </div>
   );
