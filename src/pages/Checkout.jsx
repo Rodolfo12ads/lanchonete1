@@ -278,7 +278,7 @@ export default function Checkout() {
                   exit={{ opacity: 0, x: -20 }}
                   className="bg-white rounded-2xl shadow-lg p-6"
                 >
-                  <div className="flex items-center gap-2 mb-6">
+                  <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-orange-100 rounded-lg">
                       <User className="w-5 h-5 text-orange-600" />
                     </div>
@@ -289,26 +289,24 @@ export default function Checkout() {
 
                   <div className="grid md:grid-cols-2 gap-4 mb-8">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <User className="w-4 h-4 text-gray-500" />
                         Nome completo
                       </label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Seu nome completo"
-                          value={customerData.name}
-                          onChange={(e) =>
-                            handleInputChange("name", e.target.value)
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.name
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Seu nome completo"
+                        value={customerData.name}
+                        onChange={(e) =>
+                          handleInputChange("name", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.name
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.name && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" /> {fieldErrors.name}
@@ -317,26 +315,24 @@ export default function Checkout() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Mail className="w-4 h-4 text-gray-500" />
                         E-mail
                       </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="email"
-                          placeholder="seu@email.com"
-                          value={customerData.email}
-                          onChange={(e) =>
-                            handleInputChange("email", e.target.value)
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.email
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={customerData.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.email
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.email && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" />{" "}
@@ -346,24 +342,22 @@ export default function Checkout() {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Phone className="w-4 h-4 text-gray-500" />
                         Telefone
                       </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="tel"
-                          placeholder="(00) 00000-0000"
-                          value={customerData.phone}
-                          onChange={(e) => handlePhoneChange(e.target.value)}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.phone
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="tel"
+                        placeholder="(00) 00000-0000"
+                        value={customerData.phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.phone
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.phone && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" />{" "}
@@ -384,17 +378,17 @@ export default function Checkout() {
 
                   <div className="grid md:grid-cols-3 gap-4 mb-4">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <MapPin className="w-4 h-4 text-gray-500" />
                         CEP
                       </label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                         <input
                           type="text"
                           placeholder="00000-000"
                           value={customerData.address.zipCode}
                           onChange={(e) => handleCepChange(e.target.value)}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                             fieldErrors.zipCode
                               ? "border-red-500"
                               : "border-gray-300"
@@ -402,8 +396,8 @@ export default function Checkout() {
                           required
                         />
                         {cepLoading && (
-                          <div className="absolute right-3 top-3">
-                            <Loader className="w-5 h-5 animate-spin text-orange-500" />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Loader className="w-5 h-5 animate-spin text-gray-400" />
                           </div>
                         )}
                       </div>
@@ -418,26 +412,24 @@ export default function Checkout() {
 
                   <div className="grid md:grid-cols-3 gap-4 mb-4">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Navigation className="w-4 h-4 text-gray-500" />
                         Rua
                       </label>
-                      <div className="relative">
-                        <Navigation className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Nome da rua"
-                          value={customerData.address.street}
-                          onChange={(e) =>
-                            handleInputChange("address.street", e.target.value)
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.street
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nome da rua"
+                        value={customerData.address.street}
+                        onChange={(e) =>
+                          handleInputChange("address.street", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.street
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.street && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" />{" "}
@@ -447,26 +439,24 @@ export default function Checkout() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Home className="w-4 h-4 text-gray-500" />
                         Número
                       </label>
-                      <div className="relative">
-                        <Home className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Nº"
-                          value={customerData.address.number}
-                          onChange={(e) =>
-                            handleInputChange("address.number", e.target.value)
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.number
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nº"
+                        value={customerData.address.number}
+                        onChange={(e) =>
+                          handleInputChange("address.number", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.number
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.number && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" />{" "}
@@ -496,29 +486,27 @@ export default function Checkout() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Map className="w-4 h-4 text-gray-500" />
                         Bairro
                       </label>
-                      <div className="relative">
-                        <Map className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Nome do bairro"
-                          value={customerData.address.neighborhood}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "address.neighborhood",
-                              e.target.value
-                            )
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.neighborhood
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nome do bairro"
+                        value={customerData.address.neighborhood}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "address.neighborhood",
+                            e.target.value
+                          )
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.neighborhood
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.neighborhood && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" />{" "}
@@ -530,26 +518,24 @@ export default function Checkout() {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Map className="w-4 h-4 text-gray-500" />
                         Cidade
                       </label>
-                      <div className="relative">
-                        <Map className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Nome da cidade"
-                          value={customerData.address.city}
-                          onChange={(e) =>
-                            handleInputChange("address.city", e.target.value)
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                            fieldErrors.city
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nome da cidade"
+                        value={customerData.address.city}
+                        onChange={(e) =>
+                          handleInputChange("address.city", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                          fieldErrors.city
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        required
+                      />
                       {fieldErrors.city && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" /> {fieldErrors.city}
@@ -558,30 +544,28 @@ export default function Checkout() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Map className="w-4 h-4 text-gray-500" />
                         Estado
                       </label>
-                      <div className="relative">
-                        <Map className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="UF"
-                          value={customerData.address.state}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "address.state",
-                              e.target.value.toUpperCase()
-                            )
-                          }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 uppercase ${
-                            fieldErrors.state
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          maxLength={2}
-                          required
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="UF"
+                        value={customerData.address.state}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "address.state",
+                            e.target.value.toUpperCase()
+                          )
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 uppercase ${
+                          fieldErrors.state
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        maxLength={2}
+                        required
+                      />
                       {fieldErrors.state && (
                         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                           <AlertCircle className="w-4 h-4" />{" "}

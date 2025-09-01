@@ -1,4 +1,12 @@
-import { FiPhone, FiMail, FiMapPin, FiClock, FiInstagram, FiFacebook, FiTwitter } from 'react-icons/fi';
+import {
+  FiPhone,
+  FiMail,
+  FiMapPin,
+  FiClock,
+  FiInstagram,
+  FiFacebook,
+  FiTwitter,
+} from "react-icons/fi";
 
 export default function Footer() {
   return (
@@ -11,21 +19,31 @@ export default function Footer() {
               <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl flex items-center justify-center">
                 <span className="text-white font-bold text-2xl">🍔</span>
               </div>
-              <span className="text-3xl font-bold">Burger House</span>
+              <span className="text-3xl font-bold">Snacks Chicken</span>
             </div>
             <p className="text-gray-400 leading-relaxed">
-              Os melhores lanches da cidade, feitos com ingredientes frescos e muito amor.
+              Os melhores lanches da cidade, feitos com ingredientes frescos e
+              muito amor.
             </p>
-            
+
             {/* Redes sociais */}
             <div className="flex space-x-4">
-              <a href="#" className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+              <a
+                href="#"
+                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+              >
                 <FiInstagram className="w-5 h-5" />
               </a>
-              <a href="#" className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+              <a
+                href="#"
+                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+              >
                 <FiFacebook className="w-5 h-5" />
               </a>
-              <a href="#" className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+              <a
+                href="#"
+                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+              >
                 <FiTwitter className="w-5 h-5" />
               </a>
             </div>
@@ -59,7 +77,7 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-3">
                 <FiMail className="w-5 h-5 text-red-500" />
-                contato@burgerhouse.com
+                contato@Snacks Chicken.com
               </p>
               <p className="flex items-center gap-3">
                 <FiMapPin className="w-5 h-5 text-red-500" />
@@ -67,21 +85,33 @@ export default function Footer() {
               </p>
             </div>
           </div>
-          
+
           {/* Links úteis */}
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Links Úteis</h3>
             <div className="space-y-2">
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+              <a
+                href="#"
+                className="block text-gray-400 hover:text-white transition-colors"
+              >
                 Sobre Nós
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+              <a
+                href="#"
+                className="block text-gray-400 hover:text-white transition-colors"
+              >
                 Política de Privacidade
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+              <a
+                href="#"
+                className="block text-gray-400 hover:text-white transition-colors"
+              >
                 Termos de Uso
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+              <a
+                href="#"
+                className="block text-gray-400 hover:text-white transition-colors"
+              >
                 Suporte
               </a>
             </div>
@@ -90,7 +120,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-400">
-            &copy; 2025 Burger House. Todos os direitos reservados.
+            &copy; 2025 Snacks Chicken. Todos os direitos reservados.
           </p>
           <p className="text-gray-500 text-sm">
             Desenvolvido com ❤️ para os amantes de lanches
